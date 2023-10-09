@@ -9,8 +9,10 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 
 #joblib
+import contextlib
 from tqdm import tqdm
 import time
+import joblib
 from joblib import Parallel, delayed
 
 #pytorch related
@@ -177,8 +179,29 @@ def trainNN(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **kwar
   # print(optim)
 
   for epoc in range(epoch_number):
+  # for epoc in tqdm(range(epoch_number)):
+
     train(dataloader, NN, loss_func, optim)
     test(dataloader_test, NN, loss_func)
+
+  print(f'finished train with params {kwargs}')
+
+#ref: https://stackoverflow.com/questions/24983493/tracking-progress-of-joblib-parallel-execution/58936697#58936697
+@contextlib.contextmanager
+def tqdm_joblib(tqdm_object):
+    """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+    class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
+        def __call__(self, *args, **kwargs):
+            tqdm_object.update(n=self.batch_size)
+            return super().__call__(*args, **kwargs)
+
+    old_batch_callback = joblib.parallel.BatchCompletionCallBack
+    joblib.parallel.BatchCompletionCallBack = TqdmBatchCompletionCallback
+    try:
+        yield tqdm_object
+    finally:
+        joblib.parallel.BatchCompletionCallBack = old_batch_callback
+        tqdm_object.close()
 
 
 
@@ -209,4 +232,9 @@ if __name__ == '__main__':
                 "lr": lr}
         NN_hyperparams.append(params)
 
-    res = Parallel(n_jobs=2)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in tqdm(NN_hyperparams))
+    # res = Parallel(n_jobs=2)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in tqdm(NN_hyperparams))
+    # res = Parallel(n_jobs=2)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in NN_hyperparams)
+
+    with tqdm_joblib(tqdm(desc="My calculation", total=len(NN_hyperparams))) as progress_bar:
+        res = Parallel(n_jobs=4)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in NN_hyperparams)
+    
