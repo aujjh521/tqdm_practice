@@ -157,7 +157,7 @@ def test(dataloader, model, loss_fn):
 
 def trainNN(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **kwargs):
 
-  print(f'start train with params {kwargs}')
+  # print(f'start train with params {kwargs}')
 
   #get hyperparameters
   epoch_number = kwargs['epoch_number']
@@ -178,6 +178,7 @@ def trainNN(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **kwar
   optim = torch.optim.SGD(NN.parameters(), lr=lr)
   # print(optim)
 
+  # time.sleep(5)
   for epoc in range(epoch_number):
   # for epoc in tqdm(range(epoch_number)):
 
@@ -235,6 +236,10 @@ if __name__ == '__main__':
     # res = Parallel(n_jobs=2)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in tqdm(NN_hyperparams))
     # res = Parallel(n_jobs=2)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in NN_hyperparams)
 
-    with tqdm_joblib(tqdm(desc="My calculation", total=len(NN_hyperparams))) as progress_bar:
-        res = Parallel(n_jobs=4)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in NN_hyperparams)
+    ####### check Parallel status by tqdm #######
+    # with tqdm_joblib(tqdm(desc="My calculation", total=len(NN_hyperparams))) as progress_bar:
+    #     res = Parallel(n_jobs=4)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in NN_hyperparams)
+
+    ####### dirctly check Parallel status by verbose #######
+    res = Parallel(n_jobs=4,verbose=50)(delayed(trainNN)(X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, **params) for params in NN_hyperparams)
     
